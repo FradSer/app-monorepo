@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useIntl } from 'react-intl';
+import { Animated } from 'react-native';
 
 import {
   Box,
@@ -96,7 +97,6 @@ const Unlock = () => {
     mode: 'onChange',
   });
   const isSmall = useIsVerticalLayout();
-  const justifyContent = isSmall ? 'space-between' : 'center';
   const py = isSmall ? '16' : undefined;
   const onUnlock = useCallback(
     async (values: FieldValues) => {
@@ -119,6 +119,16 @@ const Unlock = () => {
     dispatch(unlock());
     dispatch(mUnlock());
   }, [dispatch]);
+
+  // title and input fade in animations
+  const TITLE_DELAY = 400;
+  const ANIM_DURATION = 800;
+
+  const titleAnim = useRef(new Animated.Value(0)).current;
+  const titleDescAnim = useRef(new Animated.Value(1)).current;
+  const formAnim = useRef(new Animated.Value(0)).current;
+
+  // auto focus the password input
   const inputRef = useRef<HTMLDivElement | null>();
   const autoFocus = () => {
     if (inputRef.current) {
@@ -126,8 +136,32 @@ const Unlock = () => {
     }
   };
   useEffect(() => {
+    // fade in animations
+    Animated.parallel([
+      Animated.timing(titleAnim, {
+        toValue: -120,
+        delay: TITLE_DELAY,
+        duration: ANIM_DURATION,
+        useNativeDriver: true,
+      }),
+
+      Animated.timing(titleDescAnim, {
+        toValue: 0,
+        delay: TITLE_DELAY,
+        duration: ANIM_DURATION,
+        useNativeDriver: true,
+      }),
+
+      Animated.timing(formAnim, {
+        toValue: 1,
+        delay: TITLE_DELAY + ANIM_DURATION,
+        duration: ANIM_DURATION,
+        useNativeDriver: true,
+      }),
+    ]).start();
     autoFocus();
-  }, []);
+  }, [formAnim, titleAnim, titleDescAnim]);
+
   return (
     <KeyboardDismissView>
       <Center w="full" h="full" bg="background-default">
@@ -139,54 +173,88 @@ const Unlock = () => {
           display="flex"
           flexDirection="column"
           alignItems="center"
-          justifyContent={justifyContent}
+          justifyContent="center"
           position="relative"
         >
-          <Box width="full" py={py}>
-            <Box display="flex" flexDirection="column" alignItems="center">
-              <Icon name="BrandLogoIllus" size={50} />
-              <Typography.DisplayXLarge my="2">OneKey</Typography.DisplayXLarge>
-              <Typography.Body1 color="text-subdued">
-                {intl.formatMessage({
-                  id: 'content__the_decentralized_web_awaits',
-                  defaultMessage: 'The decentralized web awaits',
-                })}
-              </Typography.Body1>
-            </Box>
-            <Form mt="8">
-              <Form.Item
-                control={control}
-                name="password"
-                rules={{
-                  required: intl.formatMessage({
-                    id: 'form__field_is_required',
-                  }),
+          <Box w="full" py={py}>
+            <Animated.View
+              style={{
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyConten: 'center',
+                alignItems: 'center',
+                position: 'absolute',
+                transform: [
+                  {
+                    translateY: titleAnim,
+                  },
+                ],
+              }}
+            >
+              <Icon name="BrandLogoIllus" size={88} />
+
+              <Animated.View
+                style={{
+                  opacity: titleDescAnim,
                 }}
               >
-                <Form.PasswordInput
-                  // press enter key to submit
-                  onSubmitEditing={handleSubmit(onUnlock)}
-                  // auto focus
-                  inputRef={inputRef}
-                />
-              </Form.Item>
-              <Button
-                size="xl"
-                isDisabled={!isValid}
-                type="primary"
-                onPromise={handleSubmit(onUnlock)}
-              >
-                {intl.formatMessage({
-                  id: 'action__unlock',
-                  defaultMessage: 'Unlock',
-                })}
-              </Button>
-            </Form>
-            <Center mt="8">
-              <LocalAuthenticationButton onOk={onOk} />
-            </Center>
+                <Box display="flex" flexDirection="column" alignItems="center">
+                  <Typography.DisplayXLarge mt="8" mb="3">
+                    OneKey
+                  </Typography.DisplayXLarge>
+                  <Typography.Body1 color="text-subdued">
+                    {intl.formatMessage({
+                      id: 'content__the_decentralized_web_awaits',
+                      defaultMessage: 'The decentralized web awaits',
+                    })}
+                  </Typography.Body1>
+                </Box>
+              </Animated.View>
+            </Animated.View>
+
+            <Animated.View
+              w="full"
+              py={py}
+              style={{
+                opacity: formAnim,
+              }}
+            >
+              <Form mt="8">
+                <Form.Item
+                  control={control}
+                  name="password"
+                  rules={{
+                    required: intl.formatMessage({
+                      id: 'form__field_is_required',
+                    }),
+                  }}
+                >
+                  <Form.PasswordInput
+                    // press enter key to submit
+                    onSubmitEditing={handleSubmit(onUnlock)}
+                    inputRef={inputRef}
+                  />
+                </Form.Item>
+                <Button
+                  size="xl"
+                  isDisabled={!isValid}
+                  type="primary"
+                  onPromise={handleSubmit(onUnlock)}
+                >
+                  {intl.formatMessage({
+                    id: 'action__unlock',
+                    defaultMessage: 'Unlock',
+                  })}
+                </Button>
+              </Form>
+              <Center mt="8">
+                <LocalAuthenticationButton onOk={onOk} />
+              </Center>
+            </Animated.View>
           </Box>
-          <Center position={isSmall ? 'relative' : 'absolute'} bottom="0">
+
+          <Center position="absolute" bottom="0">
             <ForgetPasswordButton />
           </Center>
         </Box>
