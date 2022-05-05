@@ -20,6 +20,7 @@ import {
 
 import backgroundApiProxy from '../../background/instance/backgroundApiProxy';
 import LocalAuthenticationButton from '../../components/LocalAuthenticationButton';
+import { useMousePosition, useWindowSize } from '../../hooks';
 import { unlock as mUnlock } from '../../store/reducers/data';
 import { unlock } from '../../store/reducers/status';
 
@@ -97,6 +98,10 @@ const Unlock = () => {
     mode: 'onChange',
   });
   const isSmall = useIsVerticalLayout();
+
+  const mousePosition = useMousePosition();
+  const windowSize = useWindowSize();
+
   const py = isSmall ? '16' : undefined;
   const onUnlock = useCallback(
     async (values: FieldValues) => {
@@ -128,6 +133,11 @@ const Unlock = () => {
   const titleDescAnim = useRef(new Animated.Value(1)).current;
   const formAnim = useRef(new Animated.Value(0)).current;
 
+  // logo follow mouse position animation\
+
+  const logoRotateYAnim = useRef(new Animated.Value(0.5)).current;
+  const logoRotateXAnim = useRef(new Animated.Value(0.5)).current;
+
   // auto focus the password input
   const inputRef = useRef<HTMLDivElement | null>();
   const autoFocus = () => {
@@ -135,6 +145,8 @@ const Unlock = () => {
       inputRef.current.focus();
     }
   };
+
+  const [isAnimationComplete, setAnimationComplete] = useState(false);
   useEffect(() => {
     // fade in animations
     Animated.parallel([
@@ -159,8 +171,27 @@ const Unlock = () => {
         useNativeDriver: true,
       }),
     ]).start();
+
+    Animated.delay(TITLE_DELAY + ANIM_DURATION * 2).start(() => {
+      setAnimationComplete(true);
+    });
+
+    if (isAnimationComplete) {
+      logoRotateYAnim.setOffset(mousePosition.x / windowSize.width);
+      logoRotateXAnim.setOffset(mousePosition.y / windowSize.height);
+    }
+
     autoFocus();
-  }, [formAnim, titleAnim, titleDescAnim]);
+  }, [
+    formAnim,
+    isAnimationComplete,
+    logoRotateXAnim,
+    logoRotateYAnim,
+    mousePosition,
+    titleAnim,
+    titleDescAnim,
+    windowSize,
+  ]);
 
   return (
     <KeyboardDismissView>
@@ -192,7 +223,26 @@ const Unlock = () => {
                 ],
               }}
             >
-              <Icon name="BrandLogoIllus" size={88} />
+              <Animated.View
+                style={{
+                  transform: [
+                    {
+                      rotateY: logoRotateYAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['20deg', '-20deg'],
+                      }),
+                    },
+                    {
+                      rotateX: logoRotateXAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['-20deg', '20deg'],
+                      }),
+                    },
+                  ],
+                }}
+              >
+                <Icon name="BrandLogoIllus" size={88} />
+              </Animated.View>
 
               <Animated.View
                 style={{
